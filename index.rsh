@@ -2,15 +2,14 @@
 
 const commonInteract = {
     reportTransfer: Fun([UInt], Null),
-    reportError: Fun([UInt], Null),
-    reportPayment: Fun([UInt], Null),
+    reportError: Fun([], Null),
 };
 
 const PAInteract = {
     ...commonInteract,
     addressA: Bytes(128),
     price: UInt,
-    reportReady: Fun([], Null),
+    reportReady: Fun([Bytes(128)], Null),
     checkAddress: Fun([Bytes(128)], Bool),
 }
 
@@ -26,14 +25,11 @@ export const main = Reach.App(() => {
 
     init();
 
-    
     PA.only(() => { 
-        const map = new Map();
-        map.set('address', 'secret place');
         const addressA = declassify(interact.addressA);
     });
     PA.publish(addressA);
-    PA.interact.reportReady();
+    PA.interact.reportReady(addressA);
     commit();
 
     PB.only(() => {
@@ -43,22 +39,29 @@ export const main = Reach.App(() => {
     commit();
 
     PA.only(() => {
-        const isRightAdress = declassify(interact.checkAddress(addressB));
-        const price = declassify(interact.price);
+        const valid = declassify(interact.checkAddress(addressB));
     });
-    if(!isRightAdress) {
+    PA.publish(valid);
+
+    if (!valid) {
         commit();
         each([PA, PB], () => interact.reportError());
         exit();
     } else {
+        commit();
+        PA.only(() => {
+            const price = declassify(interact.price);
+        })
+        PA.publish(price);
+        commit();
+        
         PA.pay(price);
+        each([PA, PB], () => interact.reportTransfer(price));
         transfer(price).to(PB);
-        each([PA, PB], () => interact.reportPayment(price));
         commit();
     }
 
     exit();
-
 });
 
 //Participant A tells the contract who participant B is. The address should be stored in a Map or Set. 
@@ -67,3 +70,6 @@ export const main = Reach.App(() => {
 //Your program should include basic console messages that indicate the general status of the contract.
 
 //The quantity of tokens swapped is arbitrary, choose any number you like.
+
+    //const set = new Set();
+    //set.add('secret place');
