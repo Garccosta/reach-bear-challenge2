@@ -47,8 +47,7 @@ if (role === 'pa') {
     await showBalance(accB);
     const address = await ask.ask('What is you address?', (s) => s);
 
-    if( address === 's'){
-        console.log('in!')
+    if( address === 'secret place'){
         const ctcB = accB.contract(backend, ctcA.getInfo());
         await ctcB.p.PB(PBInteract);
         await showBalance(accB); 
